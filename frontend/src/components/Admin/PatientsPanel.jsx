@@ -9,7 +9,7 @@ const PatientsPanel = ({ doctor, patients }) => {
             <h3 className="admin-section-title">Patients</h3>
             {doctor ? (
               <p className="admin-muted">
-                {doctor.name} | {doctor.qualifications}
+                Dr. {doctor.name} | {doctor.qualifications}
               </p>
             ) : (
               <p className="admin-muted">Select a doctor to view their patients.</p>

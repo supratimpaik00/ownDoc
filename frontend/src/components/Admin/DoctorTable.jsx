@@ -32,15 +32,21 @@ const DoctorTable = ({ doctors, selectedDoctor, onSelect }) => {
                 const statusClass =
                   doctor.status === 'Active' ? 'status-active' : 'status-idle'
                 return (
-                  <tr key={doctor.username} className={rowClass}>
+                  <tr
+                    key={doctor.username}
+                    className={rowClass}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onSelect(doctor.username)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        onSelect(doctor.username)
+                      }
+                    }}
+                  >
                     <td>
-                      <button
-                        type="button"
-                        className="admin-link"
-                        onClick={() => onSelect(doctor.username)}
-                      >
-                        {doctor.name}
-                      </button>
+                      <span className="admin-link">Dr. {doctor.name}</span>
                     </td>
                     <td>{doctor.username}</td>
                     <td>{doctor.qualifications}</td>

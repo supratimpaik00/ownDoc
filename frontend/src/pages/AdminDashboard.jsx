@@ -54,8 +54,9 @@ const AdminDashboard = () => {
   }, [selectedDoctor])
 
   const handleDoctorSelect = (username) => {
-    updateDoctorParam(username)
-    setSelectedDoctor(username)
+    const next = selectedDoctor === username ? '' : username
+    updateDoctorParam(next)
+    setSelectedDoctor(next)
   }
 
   const handleLogout = async () => {
@@ -81,7 +82,10 @@ const AdminDashboard = () => {
     )
   }
 
-  const selectedUsername = dashboard?.selectedDoctor?.username || ''
+  const hasSelection = Boolean(selectedDoctor)
+  const selectedUsername = hasSelection ? dashboard?.selectedDoctor?.username || '' : ''
+  const displayDoctor = hasSelection ? dashboard?.selectedDoctor : null
+  const displayPatients = hasSelection ? dashboard?.patients || [] : []
 
   return (
     <div className="admin-dashboard">
@@ -93,8 +97,8 @@ const AdminDashboard = () => {
         onSelect={handleDoctorSelect}
       />
       <PatientsPanel
-        doctor={dashboard?.selectedDoctor}
-        patients={dashboard?.patients || []}
+        doctor={displayDoctor}
+        patients={displayPatients}
       />
     </div>
   )
