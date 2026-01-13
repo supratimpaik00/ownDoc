@@ -1,0 +1,25 @@
+Server running on http://localhost:8085
+Request: GET /signup
+Request: POST /signup
+Doctor registered: doc
+Request: GET /login
+Request: POST /login
+Request: GET /
+Request: POST /patients
+Patient created by doc: John (john@t.com)
+Request: GET /?selected=f7d6fc25-011b-49e4-955c-d42c71530421
+Request: GET /
+Request: POST /prescriptions
+--- Email ---
+To: john@t.com
+Subject: Prescription for John
+Prescribed by: Dr. doc (MBBS)
+Diagnosis: Fever
+Plan:
+Paracetamol | 500mg | 3
+Prescribed at: 2025-12-17T12:20:04.0699503
+------------
+Prescription sent to john@t.com plan:
+Paracetamol | 500mg | 3
+Request: GET /?selected=f7d6fc25-011b-49e4-955c-d42c71530421
+Request: GET /?selected=f7d6fc25-011b-49e4-955c-d42c71530421

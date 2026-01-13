@@ -1,0 +1,220 @@
+package app.view;
+
+import app.model.DiagnosisSession;
+import app.model.Doctor;
+import app.model.Patient;
+
+import java.util.List;
+import java.util.Optional;
+
+public class HtmlTemplates {
+    private static String layout(String title, String content) {
+        return ""
+                + "<!DOCTYPE html>\n"
+                + "<html lang=\"en\">\n"
+                + "<head>\n"
+                + "    <meta charset=\"UTF-8\" />\n"
+                + "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n"
+                + "    <title>" + escape(title) + "</title>\n"
+                + "    <style>\n"
+                + "        body { font-family: Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 16px; background: #f4f6f8; color: #12212f; }\n"
+                + "        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }\n"
+                + "        nav a { margin-right: 10px; text-decoration: none; color: #0b6bd1; }\n"
+                + "        .card { background: #fff; padding: 16px; margin-bottom: 16px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); }\n"
+                + "        .layout { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }\n"
+                + "        form { display: grid; gap: 10px; }\n"
+                + "        input, textarea, button { padding: 10px; border-radius: 6px; border: 1px solid #d0d7de; font-size: 14px; }\n"
+                + "        button { background: #0b6bd1; color: white; border: none; cursor: pointer; }\n"
+                + "        button:hover { background: #084f9c; }\n"
+                + "        .patient-btn { display: block; width: 100%; text-align: left; background: #e8f1ff; color: #0b3d91; border: 1px solid #c8dcff; margin-bottom: 8px; padding: 8px 10px; border-radius: 8px; }\n"
+                + "        .hidden { display: none; }\n"
+                + "        table { width: 100%; border-collapse: collapse; margin-top: 10px; }\n"
+                + "        th, td { padding: 8px; border-bottom: 1px solid #e4e7eb; }\n"
+                + "        .search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }\n"
+                + "        .search-row input { flex: 1; }\n"
+                + "        .muted { color: #5f6b7a; font-size: 13px; }\n"
+                + "        .history-card { background: #f9fbff; border: 1px solid #e0e7ff; padding: 10px; border-radius: 8px; margin-bottom: 8px; }\n"
+                + "        .history-card h5 { margin: 0 0 4px 0; }\n"
+                + "        .preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: none; align-items: center; justify-content: center; z-index: 999; }\n"
+                + "        .preview-overlay.active { display: flex; }\n"
+                + "        .preview-card { background: #fff; padding: 20px; border-radius: 10px; max-width: 700px; width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.18); }\n"
+                + "        .preview-card h3 { margin-top: 0; }\n"
+                + "        .actions { display: flex; gap: 10px; }\n"
+                + "        .error { color: #b00020; font-weight: bold; }\n"
+                + "        .badge { display: inline-block; padding: 4px 8px; background: #eef3ff; color: #0b6bd1; border-radius: 999px; font-size: 12px; }\n"
+                + "    </style>\n"
+                + "</head>\n"
+                + "<body>\n"
+                + content + "\n"
+                + "<script>\n"
+                + "function addMedicationRow(btn){var tbody=btn.closest('form').querySelector('tbody');var tr=document.createElement('tr');tr.innerHTML='<td><input name=\"medName\" placeholder=\"Medication\" required></td><td><input name=\"dosage\" placeholder=\"Dosage\" required></td><td><input name=\"days\" placeholder=\"Days\" required></td>';tbody.appendChild(tr);}\n"
+                + "function extractMedRows(form){var names=[...form.querySelectorAll('input[name=\"medName\"]')];var doses=[...form.querySelectorAll('input[name=\"dosage\"]')];var days=[...form.querySelectorAll('input[name=\"days\"]')];var rows=[];for(var i=0;i<names.length;i++){var name=names[i].value.trim();var dose=doses[i].value.trim();var day=days[i].value.trim();if(name!==''||dose!==''||day!==''){rows.push({n:name,d:dose,t:day});}}return rows;}\n"
+                + "function buildPrescriptionPayload(form){var rows=extractMedRows(form);if(rows.length===0){alert('Please add at least one medication row.');return false;}var plan=rows.map(function(r){return r.n+' | '+r.d+' | '+r.t;}).join('\\n');form.querySelector('input[name=\"medicationPlan\"]').value=plan;form.querySelector('input[name=\"medication\"]').value=plan;return true;}\n"
+                + "function previewPrescription(btn){var form=btn.closest('form');var rows=extractMedRows(form);if(rows.length===0){alert('Please add at least one medication row.');return;}var diagnosis=(form.querySelector('textarea[name=\"diagnosis\"]')||{}).value||'';var patientName=form.dataset.patientName||'';var patientEmail=form.dataset.patientEmail||'';var doctor=form.dataset.doctorName||'Doctor';var qual=form.dataset.doctorQual||'';var qualText=qual||'Qualifications not provided';var medsHtml=rows.map(function(r){return '<tr><td>'+escapeHtml(r.n)+'</td><td>'+escapeHtml(r.d)+'</td><td>'+escapeHtml(r.t)+'</td></tr>';}).join('');var modal=document.getElementById('preview');var body=document.getElementById('preview-body');body.innerHTML='<h3>Prescription Preview</h3>'+'<p><strong>'+escapeHtml(doctor)+'</strong><br>'+escapeHtml(qualText)+'</p>'+'<p><strong>Patient:</strong> '+escapeHtml(patientName)+' ('+escapeHtml(patientEmail)+')</p>'+'<p><strong>Diagnosis:</strong><br>'+escapeHtml(diagnosis||'N/A')+'</p>'+'<table><thead><tr><th>Medication</th><th>Dosage</th><th>Days</th></tr></thead><tbody>'+medsHtml+'</tbody></table>'+'<div class=\"actions\"><button type=\"button\" onclick=\"closePreview()\">Close</button></div>';modal.classList.add('active');}\n"
+                + "function closePreview(){var modal=document.getElementById('preview');if(modal){modal.classList.remove('active');}}\n"
+                + "function escapeHtml(str){return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;');}\n"
+                + "</script>\n"
+                + "<div id=\"preview\" class=\"preview-overlay\"><div class=\"preview-card\"><div id=\"preview-body\"></div></div></div>\n"
+                + "</body>\n"
+                + "</html>\n";
+    }
+
+    public static String login(String error) {
+        String message = error != null ? "<p class=\"error\">" + escape(error) + "</p>" : "";
+        return layout("Doctor Login", """
+                <header>
+                    <h2>Doctor Portal</h2>
+                    <nav><a href=\"/signup\">Sign up</a></nav>
+                </header>
+                <div class=\"card\">
+                    <h3>Login</h3>
+                    """ + message + """
+                    <form method=\"post\" action=\"/login\">
+                        <input type=\"text\" name=\"username\" placeholder=\"Username\" required />
+                        <input type=\"password\" name=\"password\" placeholder=\"Password\" required />
+                        <button type=\"submit\">Login</button>
+                    </form>
+                </div>
+                """);
+    }
+
+    public static String signup(String error) {
+        String message = error != null ? "<p class=\"error\">" + escape(error) + "</p>" : "";
+        return layout("Doctor Signup", """
+                <header>
+                    <h2>Create Account</h2>
+                    <nav><a href=\"/login\">Back to login</a></nav>
+                </header>
+                <div class=\"card\">
+                    <h3>Register</h3>
+                    """ + message + """
+                    <form method=\"post\" action=\"/signup\">
+                        <input type=\"text\" name=\"username\" placeholder=\"Choose a username\" required />
+                        <input type=\"password\" name=\"password\" placeholder=\"Choose a password\" required />
+                        <input type=\"text\" name=\"qualifications\" placeholder=\"Qualifications (e.g. MBBS, MD)\" required />
+                        <button type=\"submit\">Create account</button>
+                    </form>
+                </div>
+                """);
+    }
+
+    public static String dashboard(Doctor doctor, List<Patient> patients, String error, String searchTerm, Optional<Patient> selectedPatient, List<DiagnosisSession> history) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<header><div><h2>Welcome, ")
+                .append(escape(doctor.username()))
+                .append("</h2><p class=\"badge\">Signed in</p></div>")
+                .append("<form method=\\"post\\" action=\\"/logout\\"><button type=\\"submit\\">Logout</button></form></header>");
+        if (error != null) {
+            sb.append("<p class=\"error\">").append(escape(error)).append("</p>");
+        }
+
+        sb.append("<div class=\"layout\">");
+
+        sb.append("<section class=\"card\">")
+                .append("<h3>Patients</h3>")
+                .append("<form class=\"search-row\" method=\"get\" action=\"/\">")
+                .append("<input type=\"text\" name=\"q\" placeholder=\"Search patients by name, email, or phone\" value=\"").append(escape(searchTerm)).append("\" />")
+                .append("<button type=\"submit\">Search</button>")
+                .append("</form>")
+                .append("<h4>Add patient</h4>")
+                .append("<form method=\"post\" action=\"/patients\">")
+                .append("<input type=\"text\" name=\"name\" placeholder=\"Full name\" required />")
+                .append("<input type=\"email\" name=\"email\" placeholder=\"Email\" required />")
+                .append("<input type=\"tel\" name=\"phone\" placeholder=\"Phone\" required />")
+                .append("<textarea name=\"notes\" rows=\"2\" placeholder=\"Notes (optional)\"></textarea>")
+                .append("<button type=\"submit\">Create patient</button>")
+                .append("</form>")
+                .append("<div style=\\"margin-top:12px;\\">");
+        if (patients.isEmpty()) {
+            sb.append("<p>No patients yet.</p>");
+        } else {
+            for (Patient patient : patients) {
+                sb.append("<a class=\"patient-btn\" href=\"/?selected=").append(patient.id()).append("\">")
+                        .append("<strong>").append(escape(patient.name())).append("</strong><br>")
+                        .append("<span class=\"muted\">").append(escape(patient.email())).append(" | ").append(escape(patient.phone())).append("</span>")
+                        .append("</a>");
+            }
+        }
+        sb.append("</div></section>");
+
+        sb.append("<section class=\"card\">");
+        if (selectedPatient.isPresent()) {
+            Patient p = selectedPatient.get();
+            sb.append("<h3>").append(escape(p.name())).append("</h3>")
+                    .append("<p class=\"muted\">Email: ").append(escape(p.email())).append(" | Phone: ").append(escape(p.phone())).append("</p>");
+            if (p.notes() != null && !p.notes().isEmpty()) {
+                sb.append("<p><strong>Notes:</strong> ").append(escape(p.notes())).append("</p>");
+            }
+            sb.append("<h4>Edit patient</h4>")
+                    .append("<form method=\"post\" action=\"/patients/update\">")
+                    .append("<input type=\"hidden\" name=\"patientId\" value=\"").append(p.id()).append("\" />")
+                    .append("<input type=\"text\" name=\"name\" value=\"").append(escape(p.name())).append("\" required />")
+                    .append("<input type=\"email\" name=\"email\" value=\"").append(escape(p.email())).append("\" required />")
+                    .append("<input type=\"tel\" name=\"phone\" value=\"").append(escape(p.phone())).append("\" required />")
+                    .append("<textarea name=\"notes\" rows=\"2\" placeholder=\"Notes (optional)\">").append(escape(p.notes() == null ? "" : p.notes())).append("</textarea>")
+                    .append("<button type=\"submit\">Save changes</button>")
+                    .append("</form>")
+                    .append("<form method=\"post\" action=\"/patients/delete\" onsubmit=\"return confirm('Delete this patient?');\" style=\"margin-top:8px;\">")
+                    .append("<input type=\"hidden\" name=\"patientId\" value=\"").append(p.id()).append("\" />")
+                    .append("<button type=\"submit\" style=\"background:#b00020;\">Delete patient</button>")
+                    .append("</form>")
+                    .append("<h4 style=\"margin-top:16px;\">Prescription</h4>")
+                    .append("<form method=\"post\" action=\"/prescriptions\" ")
+                    .append("data-patient-name=\"").append(escape(p.name())).append("\" ")
+                    .append("data-patient-email=\"").append(escape(p.email())).append("\" ")
+                    .append("data-doctor-name=\"Dr. ").append(escape(doctor.username())).append("\" ")
+                    .append("data-doctor-qual=\"").append(escape(doctor.qualifications())).append("\" ")
+                    .append("onsubmit=\"return buildPrescriptionPayload(this)\">")
+                    .append("<input type=\"hidden\" name=\"patientId\" value=\"").append(p.id()).append("\" />")
+                    .append("<input type=\"hidden\" name=\"medicationPlan\" value=\"\" />")
+                    .append("<input type=\"hidden\" name=\"medication\" value=\"\" />")
+                    .append("<label>Diagnosis</label>")
+                    .append("<textarea name=\"diagnosis\" rows=\"2\" placeholder=\"Diagnosis\" required></textarea>")
+                    .append("<table>")
+                    .append("<thead><tr><th>Medication</th><th>Dosage</th><th>Days</th></tr></thead>")
+                    .append("<tbody>")
+                    .append("<tr>")
+                    .append("<td><input name=\"medName\" placeholder=\"Medication\" required /></td>")
+                    .append("<td><input name=\"dosage\" placeholder=\"Dosage\" required /></td>")
+                    .append("<td><input name=\"days\" placeholder=\"Days\" required /></td>")
+                    .append("</tr>")
+                    .append("</tbody>")
+                    .append("</table>")
+                    .append("<button type=\"button\" onclick=\"addMedicationRow(this)\">Add another medication</button>")
+                    .append("<div class=\"actions\">")
+                    .append("<button type=\"button\" onclick=\"previewPrescription(this)\">Preview prescription</button>")
+                    .append("<button type=\"submit\">Send prescription</button>")
+                    .append("</div>")
+                    .append("</form>");
+            sb.append("<h4 style=\"margin-top:16px;\">Diagnosis history</h4>");
+            if (history.isEmpty()) {
+                sb.append("<p class=\"muted\">No diagnosis saved yet.</p>");
+            } else {
+                for (DiagnosisSession session : history) {
+                    sb.append("<div class=\"history-card\">")
+                            .append("<h5>").append(escape(session.createdAt().toString())).append("</h5>")
+                            .append("<p><strong>Diagnosis:</strong><br>").append(escape(session.diagnosis())).append("</p>")
+                            .append("<p><strong>Plan:</strong><br>").append(escape(session.plan()).replace("\n", "<br>")).append("</p>")
+                            .append("</div>");
+                }
+            }
+        } else {
+            sb.append("<p>Select a patient to view details.</p>");
+        }
+        sb.append("</section>");
+
+        sb.append("</div>");
+
+        return layout("Dashboard", sb.toString());
+    }
+
+    private static String escape(String input) {
+        if (input == null) return "";
+        return input
+                .replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;");
+    }
+}
+
