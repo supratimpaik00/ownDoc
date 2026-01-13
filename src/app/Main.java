@@ -37,7 +37,6 @@ public class Main {
         server.createContext("/admin/logout", app::handleAdminLogout);
         server.createContext("/api/admin/login", app::handleAdminApiLogin);
         server.createContext("/api/admin/logout", app::handleAdminApiLogout);
-        server.createContext("/api/admin/dashboard", app::handleAdminDashboardData);
         server.createContext("/assets", app::handleAdminAssets);
         server.createContext("/delivery/confirm", app::handleDeliveryConfirm);
         server.createContext("/delivery/respond", app::handleDeliveryResponse);
