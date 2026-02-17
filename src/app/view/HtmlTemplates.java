@@ -12,6 +12,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 public class HtmlTemplates {
+    // Performs layout.
     private static String layout(String title, String content) {
         return ""
                 + "<!DOCTYPE html>\n"
@@ -91,6 +92,7 @@ public class HtmlTemplates {
                 + "</html>\n";
     }
 
+    // Performs login.
     public static String login(String error) {
         String message = error != null ? "<p class=\"error\">" + escape(error) + "</p>" : "";
         return layout("Doctor Login", """
@@ -110,6 +112,7 @@ public class HtmlTemplates {
                 """);
     }
 
+    // Performs signup.
     public static String signup(String error) {
         String message = error != null ? "<p class=\"error\">" + escape(error) + "</p>" : "";
         return layout("Doctor Signup", """
@@ -131,6 +134,7 @@ public class HtmlTemplates {
                 """);
     }
 
+    // Performs admin login.
     public static String adminLogin(String error) {
         String message = error != null ? "<p class=\"admin-error\">" + escape(error) + "</p>" : "";
         return layout("Admin Login", """
@@ -183,6 +187,7 @@ public class HtmlTemplates {
                 """);
     }
 
+    // Performs admin dashboard.
     public static String adminDashboard(List<Doctor> doctors, Optional<Doctor> selectedDoctor, List<Patient> patients, Map<UUID, List<DiagnosisSession>> historyByPatient, Map<UUID, String> whatsappMessages, Map<String, Long> patientCounts, int totalPatients) {
         long activeDoctors = patientCounts.values().stream().filter(count -> count != null && count > 0).count();
         StringBuilder sb = new StringBuilder();
@@ -271,9 +276,11 @@ public class HtmlTemplates {
                                 </thead>
                                 <tbody>
                 """);
+        // Performs if.
         if (doctors.isEmpty()) {
             sb.append("<tr><td colspan=\"5\" class=\"admin-muted\">No doctors registered yet.</td></tr>");
         } else {
+            // Performs for.
             for (Doctor doctor : doctors) {
                 long doctorPatients = patientCounts.getOrDefault(doctor.username(), 0L);
                 String status = doctorPatients > 0 ? "Active" : "Idle";
@@ -301,6 +308,7 @@ public class HtmlTemplates {
                     </section>
                     <section class="admin-section">
                 """);
+        // Performs if.
         if (selectedDoctor.isEmpty()) {
             sb.append("<div class=\"admin-panel\"><p class=\"admin-muted\">Select a doctor to view their patients.</p></div>");
         } else {
@@ -316,12 +324,15 @@ public class HtmlTemplates {
                     .append("</p>")
                     .append("</div>")
                     .append("</div>");
+            // Performs if.
             if (patients.isEmpty()) {
                 sb.append("<p class=\"admin-muted\">No patients assigned to this doctor.</p>");
             } else {
+                // Performs for.
                 for (Patient patient : patients) {
                     String status = patient.deliveryStatus() == null ? "" : patient.deliveryStatus();
                     String nameStyle = "";
+                    // Performs if.
                     if ("yes".equalsIgnoreCase(status)) {
                         nameStyle = " style=\\\"color:#22c55e;\\\"";
                     } else if ("no".equalsIgnoreCase(status)) {
@@ -332,6 +343,7 @@ public class HtmlTemplates {
                             .append(escape(patient.name())).append("</h5>")
                             .append("<p class=\"admin-patient-meta\">").append(escape(patient.email())).append(" | ")
                             .append(escape(patient.phone())).append("</p>");
+                    // Performs if.
                     if (patient.age() != null || (patient.gender() != null && !patient.gender().isEmpty())) {
                         sb.append("<p class=\"admin-patient-meta\">Age: ")
                                 .append(patient.age() == null ? "N/A" : escape(patient.age().toString()))
@@ -339,14 +351,17 @@ public class HtmlTemplates {
                                 .append(patient.gender() == null || patient.gender().isEmpty() ? "N/A" : escape(patient.gender()))
                                 .append("</p>");
                     }
+                    // Performs if.
                     if (patient.address() != null && !patient.address().isEmpty()) {
                         sb.append("<p class=\"admin-info\"><strong>Address:</strong> ").append(escape(patient.address())).append("</p>");
                     }
+                    // Performs if.
                     if (patient.notes() != null && !patient.notes().isEmpty()) {
                         sb.append("<p class=\"admin-info\"><strong>Notes:</strong> ").append(escape(patient.notes())).append("</p>");
                     }
                     String message = whatsappMessages.get(patient.id());
                     String whatsapp = message == null ? "" : whatsappLink(patient.phone(), message);
+                    // Performs if.
                     if (!whatsapp.isEmpty()) {
                         sb.append("<div class=\"actions\" style=\"margin:8px 0 0 0;\">")
                                 .append("<a class=\"admin-action\" href=\"").append(whatsapp)
@@ -354,9 +369,11 @@ public class HtmlTemplates {
                                 .append("</div>");
                     }
                     List<DiagnosisSession> history = historyByPatient.getOrDefault(patient.id(), List.of());
+                    // Performs if.
                     if (history.isEmpty()) {
                         sb.append("<p class=\"admin-muted\">No diagnosis saved yet.</p>");
                     } else {
+                        // Performs for.
                         for (DiagnosisSession session : history) {
                             sb.append("<div style=\"margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);\">")
                                     .append("<p class=\"admin-patient-meta\">").append(escape(session.createdAt().toString())).append("</p>")
@@ -377,15 +394,18 @@ public class HtmlTemplates {
                 </div>
                 """);
 
+        // Performs layout.
         return layout("Admin Console", sb.toString());
     }
 
+    // Performs dashboard.
     public static String dashboard(Doctor doctor, List<Patient> patients, String error, String searchTerm, Optional<Patient> selectedPatient, List<DiagnosisSession> history) {
         StringBuilder sb = new StringBuilder();
         sb.append("<header><div><h2>Welcome, ")
                 .append(escape(doctor.name()))
                 .append("</h2><p class=\"badge\">Signed in</p></div>")
                 .append("<form method=\"post\" action=\"/logout\"><button type=\"submit\">Logout</button></form></header>");
+        // Performs if.
         if (error != null) {
             sb.append("<p class=\"error\">").append(escape(error)).append("</p>");
         }
@@ -412,9 +432,11 @@ public class HtmlTemplates {
                 .append("<button type=\"submit\">Create patient</button>")
                 .append("</form>")
                 .append("<div style=\"margin-top:12px;\">");
+        // Performs if.
         if (patients.isEmpty()) {
             sb.append("<p>No patients yet.</p>");
         } else {
+            // Performs for.
             for (Patient patient : patients) {
                 sb.append("<a class=\"patient-btn\" href=\"/?selected=").append(patient.id()).append("\">")
                         .append("<strong>").append(escape(patient.name())).append("</strong><br>")
@@ -425,10 +447,12 @@ public class HtmlTemplates {
         sb.append("</div></section>");
 
         sb.append("<section class=\"card\">");
+        // Performs if.
         if (selectedPatient.isPresent()) {
             Patient p = selectedPatient.get();
             sb.append("<h3>").append(escape(p.name())).append("</h3>")
                     .append("<p class=\"muted\">Email: ").append(escape(p.email())).append(" | Phone: ").append(escape(p.phone())).append("</p>");
+            // Performs if.
             if (p.age() != null || (p.gender() != null && !p.gender().isEmpty())) {
                 sb.append("<p class=\"muted\">Age: ")
                         .append(p.age() == null ? "N/A" : escape(p.age().toString()))
@@ -436,9 +460,11 @@ public class HtmlTemplates {
                         .append(p.gender() == null || p.gender().isEmpty() ? "N/A" : escape(p.gender()))
                         .append("</p>");
             }
+            // Performs if.
             if (p.notes() != null && !p.notes().isEmpty()) {
                 sb.append("<p><strong>Notes:</strong> ").append(escape(p.notes())).append("</p>");
             }
+            // Performs if.
             if (p.address() != null && !p.address().isEmpty()) {
                 sb.append("<p><strong>Address:</strong> ").append(escape(p.address())).append("</p>");
             }
@@ -499,9 +525,11 @@ public class HtmlTemplates {
                     .append("</div>")
                     .append("</form>");
             sb.append("<h4 style=\"margin-top:16px;\">Diagnosis history (").append(history.size()).append(")</h4>");
+            // Performs if.
             if (history.isEmpty()) {
                 sb.append("<p class=\"muted\">No diagnosis saved yet.</p>");
             } else {
+                // Performs for.
                 for (DiagnosisSession session : history) {
                     sb.append("<div class=\"history-card\">")
                             .append("<h5>").append(escape(session.createdAt().toString())).append("</h5>")
@@ -517,9 +545,11 @@ public class HtmlTemplates {
 
         sb.append("</div>");
 
+        // Performs layout.
         return layout("Dashboard", sb.toString());
     }
 
+    // Performs escape.
     private static String escape(String input) {
         if (input == null) return "";
         return input
@@ -529,6 +559,7 @@ public class HtmlTemplates {
                 .replace("\"", "&quot;");
     }
 
+    // Performs gender options.
     private static String genderOptions(String current) {
         String value = current == null ? "" : current.trim();
         return "<option value=\"\">Select gender</option>"
@@ -537,16 +568,20 @@ public class HtmlTemplates {
                 + genderOption("Other", value);
     }
 
+    // Performs gender option.
     private static String genderOption(String option, String current) {
         String selected = option.equalsIgnoreCase(current) ? " selected" : "";
         return "<option value=\"" + escape(option) + "\"" + selected + ">" + escape(option) + "</option>";
     }
 
+    // Performs whatsapp link.
     private static String whatsappLink(String phone, String message) {
+        // Performs if.
         if (phone == null || phone.isBlank()) {
             return "";
         }
         String digits = phone.replaceAll("[^0-9]", "");
+        // Performs if.
         if (digits.isEmpty()) {
             return "";
         }
@@ -554,6 +589,7 @@ public class HtmlTemplates {
         return "https://wa.me/" + digits + "?text=" + encoded;
     }
 
+    // Performs url encode.
     private static String urlEncode(String value) {
         String encoded = URLEncoder.encode(value, StandardCharsets.UTF_8);
         return encoded.replace("+", "%20");

@@ -19,48 +19,71 @@ const PatientCard = ({ patient }) => {
   ]
     .filter(Boolean)
     .join(' / ')
+  const metaParts = []
+  if (patient.email) {
+    metaParts.push(patient.email)
+  }
+  if (patient.phone) {
+    metaParts.push(patient.phone)
+  }
+  if (ageGender) {
+    metaParts.push(`Age: ${ageGender}`)
+  }
+  if (patient.address) {
+    metaParts.push(`Address: ${patient.address}`)
+  }
+  if (patient.notes) {
+    metaParts.push(`Notes: ${patient.notes}`)
+  }
+  const metaLine = metaParts.join(' | ')
 
   return (
     <article className="patient-card">
-      <h5 className={nameClass}>{patient.name}</h5>
-      <p className="patient-meta">
-        {patient.email} | {patient.phone}
-      </p>
-      {ageGender && <p className="patient-meta">Age: {ageGender}</p>}
-      {patient.address && (
-        <p className="patient-info">
-          <strong>Address:</strong> {patient.address}
-        </p>
-      )}
-      {patient.notes && (
-        <p className="patient-info">
-          <strong>Notes:</strong> {patient.notes}
-        </p>
-      )}
-      {whatsappLink && (
-        <div className="patient-actions">
-          <a
-            className="admin-action"
-            href={whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Send WhatsApp message
-          </a>
+      <div className="patient-header">
+        <div>
+          <h5 className={nameClass}>{patient.name}</h5>
+          {metaLine ? <span className="patient-meta-line">{metaLine}</span> : null}
         </div>
-      )}
+      </div>
       {history.length === 0 ? (
         <p className="admin-muted">No diagnosis saved yet.</p>
       ) : (
-        history.map((session, index) => (
-          <div className="patient-history" key={`${patient.id}-${index}`}>
-            <p className="patient-history-date">{session.createdAt}</p>
-            <p className="patient-history-label">Diagnosis</p>
-            <p className="patient-history-text">{session.diagnosis}</p>
-            <p className="patient-history-label">Plan</p>
-            <p className="patient-history-text">{session.plan}</p>
+        <div className="patient-history-scroll">
+          <p className="patient-history-label">Diagnoses</p>
+          <div className="patient-history-list">
+            {history.map((session, index) => (
+              <div className="patient-history-item" key={`${patient.id}-all-${index}`}>
+                <div className="patient-history-row">
+                  <div>
+                    <p className="patient-history-date">{session.createdAt}</p>
+                    <div className="patient-history-columns">
+                      <div>
+                        <p className="patient-history-label">Diagnosis</p>
+                        <p className="patient-history-text">{session.diagnosis}</p>
+                      </div>
+                      <div>
+                        <p className="patient-history-label">Plan</p>
+                        <p className="patient-history-text">{session.plan}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {whatsappLink && (
+                    <div className="patient-history-action">
+                      <a
+                        className="admin-action"
+                        href={whatsappLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Send WhatsApp
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))
+        </div>
       )}
     </article>
   )

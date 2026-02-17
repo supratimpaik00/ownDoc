@@ -41,6 +41,7 @@ public class AppServer {
     private final String adminPass;
     private final String deliveryTokenSecret;
 
+    // Initializes app server.
     public AppServer(Database database, EmailService emailService) {
         this.database = database;
         this.emailService = emailService;
@@ -50,9 +51,12 @@ public class AppServer {
     }
 
     public void handleRoot(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
@@ -60,6 +64,7 @@ public class AppServer {
         String search = query.getOrDefault("q", "").trim();
         String selected = query.getOrDefault("selected", "").trim();
         List<Patient> patients = database.getPatientsByDoctor(doctor.get().username());
+        // Performs if.
         if (!search.isEmpty()) {
             String term = search.toLowerCase();
             patients = patients.stream()
@@ -69,27 +74,35 @@ public class AppServer {
                     .toList();
         }
         Optional<Patient> selectedPatient = Optional.empty();
+        // Performs if.
         if (!selected.isEmpty()) {
             try {
                 UUID selId = UUID.fromString(selected);
                 selectedPatient = patients.stream().filter(p -> p.id().equals(selId)).findFirst();
             } catch (IllegalArgumentException ignored) { }
         }
+        // Performs if.
         if (selectedPatient.isEmpty() && !patients.isEmpty()) {
             selectedPatient = Optional.of(patients.get(0));
         }
         List<DiagnosisSession> history = selectedPatient.map(p -> database.getDiagnosisSessions(p.id())).orElse(List.of());
         String response = HtmlTemplates.dashboard(doctor.get(), patients, null, search, selectedPatient, history);
+        // Performs write response.
         writeResponse(exchange, 200, response);
     }
 
     public void handleSignup(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 200, HtmlTemplates.signup(null));
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -98,27 +111,37 @@ public class AppServer {
         String name = form.getOrDefault("name", "").trim();
         String password = form.getOrDefault("password", "").trim();
         String qualifications = form.getOrDefault("qualifications", "").trim();
+        // Performs if.
         if (username.isEmpty() || name.isEmpty() || password.isEmpty() || qualifications.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.signup("Username, name, password, and qualifications are required."));
             return;
         }
+        // Performs if.
         if (database.getDoctor(username).isPresent()) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.signup("Username already exists."));
             return;
         }
         Doctor doctor = new Doctor(username, name, PasswordHasher.hash(password), qualifications);
         database.saveDoctor(doctor);
         System.out.println("Doctor registered: " + name + " (" + username + ")");
+        // Performs redirect.
         redirect(exchange, "/login");
     }
 
     public void handleLogin(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 200, HtmlTemplates.login(null));
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -126,7 +149,9 @@ public class AppServer {
         String username = form.getOrDefault("username", "").trim();
         String password = form.getOrDefault("password", "").trim();
         Optional<Doctor> doctor = database.getDoctor(username);
+        // Performs if.
         if (doctor.isEmpty() || !doctor.get().passwordHash().equals(PasswordHasher.hash(password))) {
+            // Performs write response.
             writeResponse(exchange, 401, HtmlTemplates.login("Invalid credentials."));
             return;
         }
@@ -134,26 +159,34 @@ public class AppServer {
         sessions.put(sessionId, username);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "SESSION=" + sessionId + "; Path=/; HttpOnly");
+        // Performs redirect.
         redirect(exchange, "/");
     }
 
     public void handleLogout(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<String> sessionId = readSessionId(exchange);
         sessionId.ifPresent(sessions::remove);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "SESSION=; Path=/; Max-Age=0");
+        // Performs redirect.
         redirect(exchange, "/login");
     }
 
     public void handlePatients(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -166,24 +199,32 @@ public class AppServer {
         String ageRaw = form.getOrDefault("age", "").trim();
         String gender = form.getOrDefault("gender", "").trim();
         Integer age = parseAge(ageRaw);
+        // Performs if.
         if (name.isEmpty() || email.isEmpty() || phone.isEmpty() || address.isEmpty() || age == null || gender.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient name, email, phone, address, age, and gender are required.", "", Optional.empty(), List.of()));
             return;
         }
         Patient patient = new Patient(UUID.randomUUID(), name, email, phone, age, gender, address, notes, doctor.get().username(), "pending");
         database.savePatient(patient);
         System.out.println("Patient created by " + doctor.get().name() + ": " + name + " (" + email + ")");
+        // Performs redirect.
         redirect(exchange, "/?selected=" + patient.id());
     }
 
     public void handlePatientUpdate(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -197,64 +238,88 @@ public class AppServer {
         String ageRaw = form.getOrDefault("age", "").trim();
         String gender = form.getOrDefault("gender", "").trim();
         Integer age = parseAge(ageRaw);
+        // Performs if.
         if (patientIdRaw.isEmpty() || name.isEmpty() || email.isEmpty() || phone.isEmpty() || address.isEmpty() || age == null || gender.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "All fields are required to update patient.", "", Optional.empty(), List.of()));
             return;
         }
         UUID patientId = UUID.fromString(patientIdRaw);
         Optional<Patient> existing = database.getPatient(patientId);
+        // Performs if.
         if (existing.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 404, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient not found.", "", Optional.empty(), List.of()));
             return;
         }
+        // Performs if.
         if (!doctor.get().username().equals(existing.get().doctorUsername())) {
+            // Performs write response.
             writeResponse(exchange, 403, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "You cannot edit patients assigned to another doctor.", "", Optional.empty(), List.of()));
             return;
         }
         Patient updated = new Patient(patientId, name, email, phone, age, gender, address, notes, existing.get().doctorUsername(), existing.get().deliveryStatus());
         database.updatePatient(updated);
+        // Performs redirect.
         redirect(exchange, "/?selected=" + patientId);
     }
 
     public void handlePatientDelete(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
         Map<String, String> form = parseForm(exchange);
         String patientIdRaw = form.getOrDefault("patientId", "").trim();
+        // Performs if.
         if (patientIdRaw.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient id is required to delete.", "", Optional.empty(), List.of()));
             return;
         }
         UUID patientId = UUID.fromString(patientIdRaw);
         Optional<Patient> existing = database.getPatient(patientId);
+        // Performs if.
         if (existing.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 404, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient not found.", "", Optional.empty(), List.of()));
             return;
         }
+        // Performs if.
         if (!doctor.get().username().equals(existing.get().doctorUsername())) {
+            // Performs write response.
             writeResponse(exchange, 403, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "You cannot delete patients assigned to another doctor.", "", Optional.empty(), List.of()));
             return;
         }
         database.deletePatient(patientId);
+        // Performs redirect.
         redirect(exchange, "/");
     }
 
     public void handleSessionSave(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -263,34 +328,46 @@ public class AppServer {
         String diagnosis = form.getOrDefault("diagnosis", "").trim();
         String medicationPlan = form.getOrDefault("medicationPlan", "").trim();
         String medication = form.getOrDefault("medication", "").trim();
+        // Performs if.
         if (patientIdRaw.isEmpty() || diagnosis.isEmpty() || (medicationPlan.isEmpty() && medication.isEmpty())) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient, diagnosis, and medication plan are required.", "", Optional.empty(), List.of()));
             return;
         }
         UUID patientId = UUID.fromString(patientIdRaw);
         Optional<Patient> patientOpt = database.getPatient(patientId);
+        // Performs if.
         if (patientOpt.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 404, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient not found.", "", Optional.empty(), List.of()));
             return;
         }
+        // Performs if.
         if (!doctor.get().username().equals(patientOpt.get().doctorUsername())) {
+            // Performs write response.
             writeResponse(exchange, 403, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "You cannot save diagnosis for another doctor's patient.", "", Optional.empty(), List.of()));
             return;
         }
         String plan = medicationPlan.isEmpty() ? medication : medicationPlan;
         database.saveDiagnosisSession(new DiagnosisSession(UUID.randomUUID(), patientId, diagnosis, plan, LocalDateTime.now()));
         System.out.println("Diagnosis session saved for patient " + patientId + " by " + doctor.get().name());
+        // Performs redirect.
         redirect(exchange, "/?selected=" + patientId);
     }
 
     public void handlePrescriptions(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/login");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -299,17 +376,23 @@ public class AppServer {
         String diagnosis = form.getOrDefault("diagnosis", "").trim();
         String medicationPlan = form.getOrDefault("medicationPlan", "").trim();
         String medication = form.getOrDefault("medication", "").trim();
+        // Performs if.
         if (patientIdRaw.isEmpty() || (medicationPlan.isEmpty() && medication.isEmpty())) {
+            // Performs write response.
             writeResponse(exchange, 400, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient and medication plan are required.", "", Optional.empty(), List.of()));
             return;
         }
         UUID patientId = UUID.fromString(patientIdRaw);
         Optional<Patient> patientOpt = database.getPatient(patientId);
+        // Performs if.
         if (patientOpt.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 404, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "Patient not found.", "", Optional.empty(), List.of()));
             return;
         }
+        // Performs if.
         if (!doctor.get().username().equals(patientOpt.get().doctorUsername())) {
+            // Performs write response.
             writeResponse(exchange, 403, HtmlTemplates.dashboard(doctor.get(), database.getPatientsByDoctor(doctor.get().username()), "You cannot send prescriptions for another doctor's patient.", "", Optional.empty(), List.of()));
             return;
         }
@@ -323,28 +406,38 @@ public class AppServer {
         emailService.sendEmail(patient.email(), subject, body);
         System.out.println("Prescription sent to " + patient.email() + " plan:\n" + plan);
         database.saveDiagnosisSession(new DiagnosisSession(UUID.randomUUID(), patient.id(), diagnosis, plan, LocalDateTime.now()));
+        // Performs redirect.
         redirect(exchange, "/?selected=" + patient.id());
     }
 
     public void handleMedicationNlp(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<Doctor> doctor = authenticate(exchange);
+        // Performs if.
         if (doctor.isEmpty()) {
+            // Performs write json.
             writeJson(exchange, 401, "{\"ok\":false,\"error\":\"unauthorized\"}");
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write json.
             writeJson(exchange, 405, "{\"ok\":false,\"error\":\"method_not_allowed\"}");
             return;
         }
         Map<String, String> form = parseForm(exchange);
         String transcript = form.getOrDefault("transcript", "").trim();
+        // Performs if.
         if (transcript.isEmpty()) {
+            // Performs write json.
             writeJson(exchange, 400, "{\"ok\":false,\"error\":\"empty_transcript\"}");
             return;
         }
         MedicationParseResult result = medicationNlp.parse(transcript);
+        // Performs if.
         if (result.isEmpty()) {
+            // Performs write json.
             writeJson(exchange, 200, "{\"ok\":true,\"medication\":\"\",\"dosage\":\"\",\"days\":\"\"}");
             return;
         }
@@ -352,23 +445,31 @@ public class AppServer {
                 + "\"medication\":\"" + jsonEscape(result.medication()) + "\","
                 + "\"dosage\":\"" + jsonEscape(result.dosage()) + "\","
                 + "\"days\":\"" + jsonEscape(result.days()) + "\"}";
+        // Performs write json.
         writeJson(exchange, 200, response);
     }
 
     public void handleAdminLogin(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs serve admin index.
             serveAdminIndex(exchange);
             return;
         }
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
         Map<String, String> form = parseForm(exchange);
         String username = form.getOrDefault("username", "").trim();
         String password = form.getOrDefault("password", "").trim();
+        // Performs if.
         if (!adminUser.equals(username) || !adminPass.equals(password)) {
+            // Performs write response.
             writeResponse(exchange, 401, HtmlTemplates.adminLogin("Invalid credentials."));
             return;
         }
@@ -376,19 +477,25 @@ public class AppServer {
         adminSessions.put(sessionId, username);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "ADMIN_SESSION=" + sessionId + "; Path=/; HttpOnly");
+        // Performs redirect.
         redirect(exchange, "/admin");
     }
 
     public void handleAdminApiLogin(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write json.
             writeJson(exchange, 405, "{\"ok\":false,\"error\":\"method_not_allowed\"}");
             return;
         }
         Map<String, String> form = parseForm(exchange);
         String username = form.getOrDefault("username", "").trim();
         String password = form.getOrDefault("password", "").trim();
+        // Performs if.
         if (!adminUser.equals(username) || !adminPass.equals(password)) {
+            // Performs write json.
             writeJson(exchange, 401, "{\"ok\":false,\"error\":\"invalid_credentials\"}");
             return;
         }
@@ -396,12 +503,16 @@ public class AppServer {
         adminSessions.put(sessionId, username);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "ADMIN_SESSION=" + sessionId + "; Path=/; HttpOnly");
+        // Performs write json.
         writeJson(exchange, 200, "{\"ok\":true}");
     }
 
     public void handleAdminApiLogout(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write json.
             writeJson(exchange, 405, "{\"ok\":false,\"error\":\"method_not_allowed\"}");
             return;
         }
@@ -409,23 +520,31 @@ public class AppServer {
         sessionId.ifPresent(adminSessions::remove);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "ADMIN_SESSION=; Path=/; Max-Age=0");
+        // Performs write json.
         writeJson(exchange, 200, "{\"ok\":true}");
     }
 
     public void handleAdminAssets(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
         String path = exchange.getRequestURI().getPath();
         Path root = adminUiRoot();
         Path target = root.resolve(path.substring(1)).normalize();
+        // Performs if.
         if (!target.startsWith(root)) {
+            // Performs write response.
             writeResponse(exchange, 403, "Forbidden");
             return;
         }
+        // Performs if.
         if (!Files.exists(target) || Files.isDirectory(target)) {
+            // Performs write response.
             writeResponse(exchange, 404, "Not Found");
             return;
         }
@@ -433,42 +552,56 @@ public class AppServer {
         Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", contentTypeFor(target));
         exchange.sendResponseHeaders(200, bytes.length);
+        // Performs try.
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
     }
 
     public void handleAdminLogout(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<String> sessionId = readAdminSessionId(exchange);
         sessionId.ifPresent(adminSessions::remove);
         Headers headers = exchange.getResponseHeaders();
         headers.add("Set-Cookie", "ADMIN_SESSION=; Path=/; Max-Age=0");
+        // Performs redirect.
         redirect(exchange, "/admin/login");
     }
 
     public void handleAdminDashboard(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<String> admin = authenticateAdmin(exchange);
+        // Performs if.
         if (admin.isEmpty()) {
+            // Performs redirect.
             redirect(exchange, "/admin/login");
             return;
         }
+        // Performs if.
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
+        // Performs serve admin index.
         serveAdminIndex(exchange);
     }
 
     public void handleAdminDashboardData(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
         Optional<String> admin = authenticateAdmin(exchange);
+        // Performs if.
         if (admin.isEmpty()) {
+            // Performs write json.
             writeJson(exchange, 401, "{\"ok\":false,\"error\":\"unauthorized\"}");
             return;
         }
+        // Performs if.
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write json.
             writeJson(exchange, 405, "{\"ok\":false,\"error\":\"method_not_allowed\"}");
             return;
         }
@@ -481,15 +614,18 @@ public class AppServer {
         int totalPatients = allPatients.size();
         long activeDoctors = patientCounts.values().stream().filter(count -> count != null && count > 0).count();
         Optional<Doctor> selected = Optional.empty();
+        // Performs if.
         if (!selectedDoctor.isEmpty()) {
             selected = doctors.stream().filter(d -> d.username().equals(selectedDoctor)).findFirst();
         }
+        // Performs if.
         if (selected.isEmpty() && !doctors.isEmpty()) {
             selected = Optional.of(doctors.get(0));
         }
         List<Patient> patients = selected.map(d -> database.getPatientsByDoctor(d.username())).orElse(List.of());
         String baseUrl = resolvePublicBaseUrl(exchange);
         String response = buildAdminDashboardJson(doctors, selected, patients, patientCounts, totalPatients, activeDoctors, baseUrl);
+        // Performs write json.
         writeJson(exchange, 200, response);
     }
 
@@ -508,6 +644,7 @@ public class AppServer {
             Doctor doctor = doctors.get(i);
             long doctorPatients = patientCounts.getOrDefault(doctor.username(), 0L);
             String status = doctorPatients > 0 ? "Active" : "Idle";
+            // Performs if.
             if (i > 0) {
                 sb.append(",");
             }
@@ -521,6 +658,7 @@ public class AppServer {
         }
         sb.append("],");
         sb.append("\"selectedDoctor\":");
+        // Performs if.
         if (selected.isEmpty()) {
             sb.append("null");
         } else {
@@ -535,6 +673,7 @@ public class AppServer {
         sb.append("\"patients\":[");
         for (int i = 0; i < patients.size(); i++) {
             Patient patient = patients.get(i);
+            // Performs if.
             if (i > 0) {
                 sb.append(",");
             }
@@ -554,6 +693,7 @@ public class AppServer {
             List<DiagnosisSession> history = database.getDiagnosisSessions(patient.id());
             for (int j = 0; j < history.size(); j++) {
                 DiagnosisSession session = history.get(j);
+                // Performs if.
                 if (j > 0) {
                     sb.append(",");
                 }
@@ -570,15 +710,20 @@ public class AppServer {
     }
 
     public void handleDeliveryConfirm(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
         Map<String, String> query = parseQuery(exchange.getRequestURI().getRawQuery());
         String patientIdRaw = query.getOrDefault("patient", "").trim();
         String token = query.getOrDefault("token", "").trim();
+        // Performs if.
         if (patientIdRaw.isEmpty() || token.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 400, layoutMessage("Invalid response link."));
             return;
         }
@@ -586,21 +731,28 @@ public class AppServer {
         try {
             patientId = UUID.fromString(patientIdRaw);
         } catch (IllegalArgumentException e) {
+            // Performs write response.
             writeResponse(exchange, 400, layoutMessage("Invalid response link."));
             return;
         }
+        // Performs if.
         if (!isValidDeliveryToken(patientId, token)) {
+            // Performs write response.
             writeResponse(exchange, 403, layoutMessage("This response link is not valid."));
             return;
         }
         String yesLink = deliveryResponseLink(patientId, "yes", token);
         String noLink = deliveryResponseLink(patientId, "no", token);
+        // Performs write response.
         writeResponse(exchange, 200, deliveryConfirmPage(yesLink, noLink));
     }
 
     public void handleDeliveryResponse(HttpExchange exchange) throws IOException {
+        // Performs log request.
         logRequest(exchange);
+        // Performs if.
         if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // Performs write response.
             writeResponse(exchange, 405, "Method Not Allowed");
             return;
         }
@@ -608,7 +760,9 @@ public class AppServer {
         String patientIdRaw = query.getOrDefault("patient", "").trim();
         String choiceRaw = query.getOrDefault("choice", "").trim().toLowerCase();
         String token = query.getOrDefault("token", "").trim();
+        // Performs if.
         if (patientIdRaw.isEmpty() || token.isEmpty() || (!"yes".equals(choiceRaw) && !"no".equals(choiceRaw))) {
+            // Performs write response.
             writeResponse(exchange, 400, layoutMessage("Invalid response link."));
             return;
         }
@@ -616,15 +770,20 @@ public class AppServer {
         try {
             patientId = UUID.fromString(patientIdRaw);
         } catch (IllegalArgumentException e) {
+            // Performs write response.
             writeResponse(exchange, 400, layoutMessage("Invalid response link."));
             return;
         }
+        // Performs if.
         if (!isValidDeliveryToken(patientId, token)) {
+            // Performs write response.
             writeResponse(exchange, 403, layoutMessage("This response link is not valid."));
             return;
         }
         Optional<Patient> patientOpt = database.getPatient(patientId);
+        // Performs if.
         if (patientOpt.isEmpty()) {
+            // Performs write response.
             writeResponse(exchange, 404, layoutMessage("Patient not found."));
             return;
         }
@@ -643,41 +802,53 @@ public class AppServer {
         );
         database.updatePatient(updated);
         String message = "Thanks! Your response was recorded as \"" + choiceRaw + "\".";
+        // Performs write response.
         writeResponse(exchange, 200, layoutMessage(message));
     }
 
+    // Performs authenticate.
     private Optional<Doctor> authenticate(HttpExchange exchange) {
         Optional<String> sessionId = readSessionId(exchange);
+        // Performs if.
         if (sessionId.isEmpty()) {
             return Optional.empty();
         }
         String username = sessions.get(sessionId.get());
+        // Performs if.
         if (username == null) {
             return Optional.empty();
         }
         return database.getDoctor(username);
     }
 
+    // Authenticates admin.
     private Optional<String> authenticateAdmin(HttpExchange exchange) {
         Optional<String> sessionId = readAdminSessionId(exchange);
+        // Performs if.
         if (sessionId.isEmpty()) {
             return Optional.empty();
         }
         String username = adminSessions.get(sessionId.get());
+        // Performs if.
         if (username == null) {
             return Optional.empty();
         }
         return Optional.of(username);
     }
 
+    // Performs read session id.
     private Optional<String> readSessionId(HttpExchange exchange) {
         List<String> cookies = exchange.getRequestHeaders().get("Cookie");
+        // Performs if.
         if (cookies == null) {
             return Optional.empty();
         }
+        // Performs for.
         for (String cookieHeader : cookies) {
             String[] parts = cookieHeader.split(";\\s*");
+            // Performs for.
             for (String part : parts) {
+                // Performs if.
                 if (part.startsWith("SESSION=")) {
                     return Optional.of(part.substring("SESSION=".length()));
                 }
@@ -686,14 +857,19 @@ public class AppServer {
         return Optional.empty();
     }
 
+    // Performs read admin session id.
     private Optional<String> readAdminSessionId(HttpExchange exchange) {
         List<String> cookies = exchange.getRequestHeaders().get("Cookie");
+        // Performs if.
         if (cookies == null) {
             return Optional.empty();
         }
+        // Performs for.
         for (String cookieHeader : cookies) {
             String[] parts = cookieHeader.split(";\\s*");
+            // Performs for.
             for (String part : parts) {
+                // Performs if.
                 if (part.startsWith("ADMIN_SESSION=")) {
                     return Optional.of(part.substring("ADMIN_SESSION=".length()));
                 }
@@ -705,7 +881,9 @@ public class AppServer {
     private Map<String, String> parseForm(HttpExchange exchange) throws IOException {
         String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
         Map<String, String> form = new HashMap<>();
+        // Performs for.
         for (String pair : body.split("&")) {
+            // Performs if.
             if (pair.isEmpty()) {
                 continue;
             }
@@ -717,11 +895,14 @@ public class AppServer {
         return form;
     }
 
+    // Parses query.
     private Map<String, String> parseQuery(String rawQuery) {
         Map<String, String> query = new HashMap<>();
+        // Performs if.
         if (rawQuery == null || rawQuery.isEmpty()) {
             return query;
         }
+        // Performs for.
         for (String pair : rawQuery.split("&")) {
             if (pair.isEmpty()) continue;
             String[] kv = pair.split("=", 2);
@@ -744,6 +925,7 @@ public class AppServer {
         Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", "text/html; charset=utf-8");
         exchange.sendResponseHeaders(status, bytes.length);
+        // Performs try.
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
@@ -754,18 +936,22 @@ public class AppServer {
         Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", "application/json; charset=utf-8");
         exchange.sendResponseHeaders(status, bytes.length);
+        // Performs try.
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
     }
 
+    // Performs log request.
     private void logRequest(HttpExchange exchange) {
         System.out.println("Request: " + exchange.getRequestMethod() + " " + exchange.getRequestURI());
     }
 
     private void serveAdminIndex(HttpExchange exchange) throws IOException {
         Path index = adminUiRoot().resolve("index.html");
+        // Performs if.
         if (!Files.exists(index)) {
+            // Performs write response.
             writeResponse(exchange, 200, "Admin UI not built. Run `npm run build` in frontend/.");
             return;
         }
@@ -773,15 +959,18 @@ public class AppServer {
         Headers headers = exchange.getResponseHeaders();
         headers.set("Content-Type", "text/html; charset=utf-8");
         exchange.sendResponseHeaders(200, bytes.length);
+        // Performs try.
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
     }
 
+    // Performs admin ui root.
     private Path adminUiRoot() {
         return Path.of("frontend", "dist");
     }
 
+    // Performs content type for.
     private String contentTypeFor(Path file) {
         String name = file.getFileName().toString().toLowerCase();
         if (name.endsWith(".js")) return "text/javascript; charset=utf-8";
@@ -794,7 +983,9 @@ public class AppServer {
         return "application/octet-stream";
     }
 
+    // Parses age.
     private Integer parseAge(String raw) {
+        // Performs if.
         if (raw == null || raw.isBlank()) {
             return null;
         }
@@ -806,38 +997,48 @@ public class AppServer {
         }
     }
 
+    // Resolves public base url.
     private String resolvePublicBaseUrl(HttpExchange exchange) {
         String base = System.getenv("PUBLIC_BASE_URL");
+        // Performs if.
         if (base != null && !base.isBlank()) {
             return base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
         }
         String host = exchange.getRequestHeaders().getFirst("Host");
+        // Performs if.
         if (host == null || host.isBlank()) {
             return "http://localhost:8080";
         }
         String proto = exchange.getRequestHeaders().getFirst("X-Forwarded-Proto");
+        // Performs if.
         if (proto == null || proto.isBlank()) {
             proto = "http";
         }
         return proto + "://" + host;
     }
 
+    // Builds delivery message.
     private String buildDeliveryMessage(String baseUrl, UUID patientId) {
         String token = createDeliveryToken(patientId);
         String link = baseUrl + "/delivery/confirm?patient=" + patientId + "&token=" + token;
         return "Do want ur medicine delivered? Tap this link: " + link;
     }
 
+    // Performs delivery response link.
     private String deliveryResponseLink(UUID patientId, String choice, String token) {
         return "/delivery/respond?patient=" + patientId + "&choice=" + choice + "&token=" + token;
     }
 
+    // Creates delivery token.
     private String createDeliveryToken(UUID patientId) {
         String payload = patientId.toString();
+        // Performs hmac sha 256 hex.
         return hmacSha256Hex(payload, deliveryTokenSecret);
     }
 
+    // Checks whether valid delivery token.
     private boolean isValidDeliveryToken(UUID patientId, String token) {
+        // Performs if.
         if (token == null || token.isBlank()) {
             return false;
         }
@@ -845,6 +1046,7 @@ public class AppServer {
         return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8));
     }
 
+    // Performs hmac sha 256 hex.
     private String hmacSha256Hex(String payload, String secret) {
         try {
             Mac mac = Mac.getInstance("HmacSHA256");
@@ -852,17 +1054,21 @@ public class AppServer {
             mac.init(keySpec);
             byte[] result = mac.doFinal(payload.getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder(result.length * 2);
+            // Performs for.
             for (byte b : result) {
                 sb.append(String.format("%02x", b));
             }
             return sb.toString();
         } catch (Exception e) {
+            // Performs runtime exception.
             throw new RuntimeException("Failed to generate delivery token", e);
         }
     }
 
+    // Resolves delivery token secret.
     private String resolveDeliveryTokenSecret() {
         String secret = System.getenv("DELIVERY_TOKEN_SECRET");
+        // Performs if.
         if (secret == null || secret.isBlank()) {
             System.out.println("DELIVERY_TOKEN_SECRET not set; using a development default.");
             return "dev-secret";
@@ -870,6 +1076,7 @@ public class AppServer {
         return secret;
     }
 
+    // Performs layout message.
     private String layoutMessage(String message) {
         String safe = escapeHtml(message == null ? "" : message);
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\" />"
@@ -880,6 +1087,7 @@ public class AppServer {
                 + "</head><body><div class=\"card\"><p>" + safe + "</p></div></body></html>";
     }
 
+    // Performs delivery confirm page.
     private String deliveryConfirmPage(String yesLink, String noLink) {
         String yesSafe = escapeHtml(yesLink);
         String noSafe = escapeHtml(noLink);
@@ -898,6 +1106,7 @@ public class AppServer {
                 + "</div></div></body></html>";
     }
 
+    // Performs escape html.
     private String escapeHtml(String input) {
         return input.replace("&", "&amp;")
                 .replace("<", "&lt;")
@@ -905,8 +1114,10 @@ public class AppServer {
                 .replace("\"", "&quot;");
     }
 
+    // Resolves admin user.
     private String resolveAdminUser() {
         String user = System.getenv("ADMIN_USER");
+        // Performs if.
         if (user == null || user.isBlank()) {
             System.out.println("ADMIN_USER not set; defaulting to admin.");
             return "admin";
@@ -914,8 +1125,10 @@ public class AppServer {
         return user;
     }
 
+    // Resolves admin pass.
     private String resolveAdminPass() {
         String pass = System.getenv("ADMIN_PASS");
+        // Performs if.
         if (pass == null || pass.isBlank()) {
             System.out.println("ADMIN_PASS not set; defaulting to adminpass.");
             return "adminpass";
@@ -923,13 +1136,16 @@ public class AppServer {
         return pass;
     }
 
+    // Performs json escape.
     private String jsonEscape(String value) {
+        // Performs if.
         if (value == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
+            // Performs switch.
             switch (c) {
                 case '\\' -> sb.append("\\\\");
                 case '"' -> sb.append("\\\"");
@@ -942,6 +1158,7 @@ public class AppServer {
         return sb.toString();
     }
 
+    // Performs value or empty.
     private String valueOrEmpty(String value) {
         return value == null ? "" : value;
     }

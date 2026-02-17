@@ -19,9 +19,11 @@ const PatientsPanel = ({ doctor, patients }) => {
         {!doctor ? null : patients.length === 0 ? (
           <p className="admin-muted">No patients assigned to this doctor.</p>
         ) : (
-          patients.map((patient) => (
-            <PatientCard key={patient.id} patient={patient} />
-          ))
+          <div className="patient-grid">
+            {patients.map((patient) => (
+              <PatientCard key={patient.id} patient={patient} />
+            ))}
+          </div>
         )}
       </div>
     </section>

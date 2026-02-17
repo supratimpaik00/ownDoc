@@ -185,6 +185,30 @@
   margin-top: 12px;
 }
 
+.patient-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.patient-meta-line {
+  display: block;
+  margin-top: 6px;
+  color: #8fa4bc;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.patient-grid .patient-card {
+  margin-top: 0;
+}
+
 .patient-title {
   margin: 0 0 4px 0;
   font-size: 14px;
@@ -235,6 +259,68 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.patient-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.patient-history-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 18px;
+  margin-top: 6px;
+}
+
+.patient-history-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.patient-history-scroll {
+  margin-top: 12px;
+}
+
+.patient-history-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(90, 130, 180, 0.5) rgba(10, 16, 26, 0.6);
+}
+
+.patient-history-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.patient-history-list::-webkit-scrollbar-track {
+  background: rgba(10, 16, 26, 0.6);
+  border-radius: 999px;
+}
+
+.patient-history-list::-webkit-scrollbar-thumb {
+  background: rgba(90, 130, 180, 0.6);
+  border-radius: 999px;
+}
+
+.patient-history-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(90, 130, 180, 0.8);
+}
+
+.patient-history-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.patient-history-item:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
 .patient-history-date {
   margin: 0 0 6px 0;
   font-size: 12px;
@@ -275,6 +361,10 @@
     align-items: flex-start;
     gap: 12px;
   }
+
+  .patient-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -283,6 +373,10 @@
   }
 
   .admin-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -1,6 +1,7 @@
 package app.mail;
 
 public class ConsoleEmailService implements EmailService {
+    // Performs send email.
     @Override
     public void sendEmail(String to, String subject, String body) {
         System.out.println("--- Email ---");

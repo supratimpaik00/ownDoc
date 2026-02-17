@@ -51,3 +51,62 @@ export async function logoutAdmin() {
   }
   return true
 }
+
+export async function requestAdminOtp(phone) {
+  const body = new URLSearchParams()
+  body.set('phone', phone)
+  try {
+    const response = await fetch('/api/admin/password/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    })
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}))
+      return { ok: false, error: data.error || 'Unable to send OTP.' }
+    }
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: 'Network error' }
+  }
+}
+
+export async function verifyAdminOtp(phone, otp) {
+  const body = new URLSearchParams()
+  body.set('phone', phone)
+  body.set('otp', otp)
+  try {
+    const response = await fetch('/api/admin/password/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      return { ok: false, error: data.error || 'OTP verification failed.' }
+    }
+    return { ok: true, token: data.token }
+  } catch (error) {
+    return { ok: false, error: 'Network error' }
+  }
+}
+
+export async function resetAdminPassword(token, password) {
+  const body = new URLSearchParams()
+  body.set('token', token)
+  body.set('password', password)
+  try {
+    const response = await fetch('/api/admin/password/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    })
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      return { ok: false, error: data.error || 'Password reset failed.' }
+    }
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, error: 'Network error' }
+  }
+}
